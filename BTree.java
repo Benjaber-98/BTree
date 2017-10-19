@@ -1,162 +1,100 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
-package project.pkg2;
-
-/**
- *
- * @author Mahmoud
- */
-public class BTree {
-    
-    // max children per B-tree node = M-1
-    // (must be even and greater than 2)
-    private static final int M = 4;
-
-    private Node root;       // root of the B-tree
-    private int height;      // height of the B-tree
-    private int n;           // number of key-value pairs in the B-tree
-
-    // helper B-tree node data type
-    private static final class Node {
-        private int m;                             // number of children
-        private Entry[] children = new Entry[M];   // the array of children
-
-        // create a node with k children
-        private Node(int k) {
-            m = k;
-        }
+// C++ implemntation of search() and traverse() methods
+#include<iostream>
+using namespace std;
+ 
+// A BTree node
+class BTreeNode
+{
+    int *keys;  // An array of keys
+    int t;      // Minimum degree (defines the range for number of keys)
+    BTreeNode **C; // An array of child pointers
+    int n;     // Current number of keys
+    bool leaf; // Is true when node is leaf. Otherwise false
+public:
+    BTreeNode(int _t, bool _leaf);   // Constructor
+ 
+    // A function to traverse all nodes in a subtree rooted with this node
+    void traverse();
+ 
+    // A function to search a key in subtree rooted with this node.    
+    BTreeNode *search(int k);   // returns NULL if k is not present.
+ 
+// Make BTree friend of this so that we can access private members of this
+// class in BTree functions
+friend class BTree;
+};
+ 
+// A BTree
+class BTree
+{
+    BTreeNode *root; // Pointer to root node
+    int t;  // Minimum degree
+public:
+    // Constructor (Initializes tree as empty)
+    BTree(int _t)
+    {  root = NULL;  t = _t; }
+ 
+    // function to traverse the tree
+    void traverse()
+    {  if (root != NULL) root->traverse(); }
+ 
+    // function to search a key in this tree
+    BTreeNode* search(int k)
+    {  return (root == NULL)? NULL : root->search(k); }
+};
+ 
+// Constructor for BTreeNode class
+BTreeNode::BTreeNode(int _t, bool _leaf)
+{
+    // Copy the given minimum degree and leaf property
+    t = _t;
+    leaf = _leaf;
+ 
+    // Allocate memory for maximum number of possible keys
+    // and child pointers
+    keys = new int[2*t-1];
+    C = new BTreeNode *[2*t];
+ 
+    // Initialize the number of keys as 0
+    n = 0;
+}
+ 
+// Function to traverse all nodes in a subtree rooted with this node
+void BTreeNode::traverse()
+{
+    // There are n keys and n+1 children, travers through n keys
+    // and first n children
+    int i;
+    for (i = 0; i < n; i++)
+    {
+        // If this is not leaf, then before printing key[i],
+        // traverse the subtree rooted with child C[i].
+        if (leaf == false)
+            C[i]->traverse();
+        cout << " " << keys[i];
     }
-
-    // internal nodes: only use key and next
-    // external nodes: only use key and value
-    private static class Entry {
-        private Comparable key;
-        private final Object val;
-        private Node next;     // helper field to iterate over array entries
-        public Entry(Comparable key, Object val, Node next) {
-            this.key  = key;
-            this.val  = val;
-            this.next = next;
-        }
-    }
-
-    /**
-     * Initializes an empty B-tree.
-     */
-    public BTree() {
-        root = new Node(0);
-    }
-
-    /**
-     * Returns the value associated with the given key.
-     *
-     * @param  key the key
-     * @return the value associated with the given key if the key is in the symbol table
-     *         and {@code null} if the key is not in the symbol table
-     * @throws IllegalArgumentException if {@code key} is {@code null}
-     */
-    public TrackingDevice get(Integer key) {
-        if (key == null) throw new IllegalArgumentException("argument to get() is null");
-        return search(root, key, height);
-    }
-
-    private TrackingDevice search(Node x, Integer key, int ht) {
-        Entry[] children = x.children;
-
-        // external node
-        if (ht == 0) {
-            for (int j = 0; j < x.m; j++) {
-                if (eq(key, children[j].key)) return (TrackingDevice) children[j].val;
-            }
-        }
-
-        // internal node
-        else {
-            for (int j = 0; j < x.m; j++) {
-                if (j+1 == x.m || less(key, children[j+1].key))
-                    return search(children[j].next, key, ht-1);
-            }
-        }
-        return null;
-    }
-
-
-    /**
-     * Inserts the key-value pair into the symbol table, overwriting the old value
-     * with the new value if the key is already in the symbol table.
-     * If the value is {@code null}, this effectively deletes the key from the symbol table.
-     *
-     * @param  key the key
-     * @param  val the value
-     * @throws IllegalArgumentException if {@code key} is {@code null}
-     */
-    public void put(Integer key, TrackingDevice val) {
-        if (key == null) throw new IllegalArgumentException("argument key to put() is null");
-        Node u = insert(root, key, val, height); 
-        n++;
-        if (u == null) return;
-
-        // need to split root
-        Node t = new Node(2);
-        t.children[0] = new Entry(root.children[0].key, null, root);
-        t.children[1] = new Entry(u.children[0].key, null, u);
-        root = t;
-        height++;
-    }
-
-    private Node insert(Node h, Integer key, TrackingDevice val, int ht) {
-        int j;
-        Entry t = new Entry(key, val, null);
-
-        // external node
-        if (ht == 0) {
-            for (j = 0; j < h.m; j++) {
-                if (less(key, h.children[j].key)) break;
-            }
-        }
-
-        // internal node
-        else {
-            for (j = 0; j < h.m; j++) {
-                if ((j+1 == h.m) || less(key, h.children[j+1].key)) {
-                    Node u = insert(h.children[j++].next, key, val, ht-1);
-                    if (u == null) return null;
-                    t.key = u.children[0].key;
-                    t.next = u;
-                    break;
-                }
-            }
-        }
-
-        for (int i = h.m; i > j; i--)
-            h.children[i] = h.children[i-1];
-        h.children[j] = t;
-        h.m++;
-        if (h.m < M) return null;
-        else         return split(h);
-    }
-
-    // split node in half
-    private Node split(Node h) {
-        Node t = new Node(M/2);
-        h.m = M/2;
-        for (int j = 0; j < M/2; j++)
-            t.children[j] = h.children[M/2+j]; 
-        return t;    
-    }
-
-    // comparison functions - make Comparable instead of Key to avoid casts
-    private boolean less(Comparable k1, Comparable k2) {
-        return k1.compareTo(k2) < 0;
-    }
-
-    private boolean eq(Comparable k1, Comparable k2) {
-        return k1.compareTo(k2) == 0;
-    }
-    
-    
-
+ 
+    // Print the subtree rooted with last child
+    if (leaf == false)
+        C[i]->traverse();
+}
+ 
+// Function to search key k in subtree rooted with this node
+BTreeNode *BTreeNode::search(int k)
+{
+    // Find the first key greater than or equal to k
+    int i = 0;
+    while (i < n && k > keys[i])
+        i++;
+ 
+    // If the found key is equal to k, return this node
+    if (keys[i] == k)
+        return this;
+ 
+    // If key is not found here and this is a leaf node
+    if (leaf == true)
+        return NULL;
+ 
+    // Go to the appropriate child
+    return C[i]->search(k);
 }
