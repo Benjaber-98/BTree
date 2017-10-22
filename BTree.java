@@ -11,9 +11,7 @@ package project.pkg2;
  */
 public class BTree {
     
-    // max children per B-tree node = M-1
-    // (must be even and greater than 2)
-    private static final int M = 4;
+    private static final int t = 3;
 
     private Node root;       // root of the B-tree
     private int height;      // height of the B-tree
@@ -21,12 +19,12 @@ public class BTree {
 
     // helper B-tree node data type
     private static final class Node {
-        private int m;                             // number of children
-        private Entry[] children = new Entry[M];   // the array of children
+        private int numOfChildren;                             // number of children
+        private Entry[] children = new Entry[2*t - 1];   // the array of children
 
         // create a node with k children
         private Node(int k) {
-            m = k;
+            numOfChildren = k;
         }
     }
 
@@ -66,17 +64,17 @@ public class BTree {
     private TrackingDevice search(Node x, Integer key, int ht) {
         Entry[] children = x.children;
 
-        // external node
         if (ht == 0) {
-            for (int j = 0; j < x.m; j++) {
+            for (int j = 0; j < x.numOfChildren; j++) {
                 if (eq(key, children[j].key)) return (TrackingDevice) children[j].val;
             }
         }
 
-        // internal node
         else {
-            for (int j = 0; j < x.m; j++) {
-                if (j+1 == x.m || less(key, children[j+1].key))
+            for (int j = 0; j < x.numOfChildren; j++) {
+                if (eq(key, children[j].key)) return (TrackingDevice) children[j].val;
+                
+                if (j+1 == x.numOfChildren || key < children[j+1].key)
                     return search(children[j].next, key, ht-1);
             }
         }
@@ -88,8 +86,6 @@ public class BTree {
      * Inserts the key-value pair into the symbol table, overwriting the old value
      * with the new value if the key is already in the symbol table.
      * If the value is {@code null}, this effectively deletes the key from the symbol table.
-     *
-     * @param  key the key
      * @param  val the value
      * @throws IllegalArgumentException if {@code key} is {@code null}
      */
@@ -112,15 +108,15 @@ public class BTree {
 
         // external node
         if (ht == 0) {
-            for (j = 0; j < h.m; j++) {
+            for (j = 0; j < h.numOfChildren; j++) {
                 if (less(val.getId(), h.children[j].key)) break;
             }
         }
 
         // internal node
         else {
-            for (j = 0; j < h.m; j++) {
-                if ((j+1 == h.m) || less(val.getId(), h.children[j+1].key)) {
+            for (j = 0; j < h.numOfChildren; j++) {
+                if ((j+1 == h.numOfChildren) || less(val.getId(), h.children[j+1].key)) {
                     Node u = insert(h.children[j++].next, val, ht-1);
                     if (u == null) return null;
                     t.key = u.children[0].key;
@@ -130,20 +126,20 @@ public class BTree {
             }
         }
 
-        for (int i = h.m; i > j; i--)
+        for (int i = h.numOfChildren; i > j; i--)
             h.children[i] = h.children[i-1];
         h.children[j] = t;
-        h.m++;
-        if (h.m < M) return null;
+        h.numOfChildren++;
+        if (less(h.numOfChildren, (2*BTree.t - 1))) return null;
         else         return split(h);
     }
 
     // split node in half
     private Node split(Node h) {
-        Node t = new Node(M/2);
-        h.m = M/2;
-        for (int j = 0; j < M/2; j++)
-            t.children[j] = h.children[M/2+j]; 
+        Node t = new Node((2*BTree.t - 1)/2);
+        h.numOfChildren = (2*BTree.t - 1)/2;
+        for (int j = 0; j < (2*BTree.t - 1)/2; j++)
+            t.children[j] = h.children[(2*BTree.t - 1)/2 + j]; 
         return t;
     }
 
