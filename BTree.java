@@ -5,35 +5,33 @@
  */
 package project.pkg2;
 
-import java.util.HashSet;
-import java.util.Set;
 
 /**
  *
  * @author Mahmoud
  */
 class BTreeNode {
-	int[] keys;
+	TrackingDevice[] keys;
 	BTreeNode[] child;
 	int n;
 	boolean leaf;
 
 	// Constructor
 	BTreeNode(int t, boolean l) {
-		keys = new int[2 * t - 1];
+		keys = new TrackingDevice[2 * t - 1];
 		child = new BTreeNode[2 * t];
 		leaf = l;
 		n = 0;
 	}
 
-	BTreeNode search(int k) {
+	TrackingDevice search(int k) {
 		int i = 0;
 		for (i = 0; i < n; i++) {
-			if (keys[i] >= k)
+			if (keys[i].getId() >= k)
 				break;
 		}
-		if (i < n && keys[i] == k)
-			return this;
+		if (i < n && keys[i].getId() == k)
+			return keys[i];
 		if (leaf == true)
 			return null;
 		//System.out.println(i);
@@ -43,26 +41,26 @@ class BTreeNode {
 	void traverse(int l) {
 		for (int i = 0; i < n; i++) {
 			if (!leaf)
-				child[i].traverse(l + l);
+				child[i].traverse(l + 1);
 			System.out.print("Level : " + l + " : ");
-			System.out.print(keys[i] + " ");
+			System.out.print(keys[i].getId() + " ");
 			System.out.println();
 		}
 		if (!leaf)
 			child[n].traverse(l + 1);
 	}
 
-	void insertNonFull(int k, int t) {
+	void insertNonFull(TrackingDevice k, int t) {
 		if (leaf) {
 			int x = n;
-			while (x > 0 && keys[x - 1] > k) {
+			while (x > 0 && keys[x - 1].getId() > k.getId()) {
 				keys[x] = keys[--x];
 			}
 			keys[x] = k;
 			n++;
 		} else {
 			int x = 0;
-			while (x < n && keys[x] < k)
+			while (x < n)
 				x++;
 			if (child[x].n == (2 * t - 1))// Child is full
 			{
@@ -70,7 +68,7 @@ class BTreeNode {
 				int i = x;
 				int m = this.child[x].n - 1;
 				// this.leaf=false;
-				if (this.child[x].keys[m] < k)
+				if (this.child[x].keys[m].getId() < k.getId())
 					i++;
 				this.child[i].insertNonFull(k, t);
 				// if(child[x].leaf==true)
@@ -120,7 +118,7 @@ public class BTree {
 		root = null;
 	}
 
-	void add(int k) {
+	void add(TrackingDevice k) {
 		// Tree is Empty
 		if (root == null) {
 			root = new BTreeNode(t, true);
@@ -137,7 +135,7 @@ public class BTree {
 				ch.splitChild(0, root, t);
 				int i = 0;
 				int m = ch.child[0].n - 1;
-				if (ch.child[0].keys[m] < k)
+				if (ch.child[0].keys[m].getId() < k.getId())
 					i++;
 				ch.child[i].insertNonFull(k, t);
 				// ch.child[1].leaf=true;
@@ -146,15 +144,13 @@ public class BTree {
 			}
 		}
 	}
-        
-        Integer get(int k) {
-            BTreeNode n = root.search(k);
+
+        TrackingDevice get(int k) {
+            TrackingDevice n = root.search(k);
             if(n != null) {
-                for(int x : n.keys) {
-                    if(k == x) return x;
-                }
+                return n;
             }
-            
+
             return null;
         }
 }
